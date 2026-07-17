@@ -1,0 +1,195 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../app/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id        String   @id @default(cuid())
+  name      String
+  email     String   @unique
+  password  String
+  role      Role     @default(EMPLOYEE)
+  createdAt DateTime @default(now())
+
+  submittedTickets Ticket[] @relation("SubmittedTickets")
+  assignedTickets  Ticket[] @relation("AssignedTickets")
+  agentRuns        AgentRun[]
+  decisions        AiRecommendation[] @relation("RecommendationDecider")
+}
+
+enum Role {
+  EMPLOYEE
+  STAFF
+  MANAGER
+}
+
+model Ticket {
+  id           String        @id @default(cuid())
+  title        String
+  description  String
+  category     Category
+  status       TicketStatus  @default(OPEN)
+  priority     Priority?
+  submitter    User          @relation("SubmittedTickets", fields: [submitterId], references: [id])
+  submitterId  String
+  assignee     User?         @relation("AssignedTickets", fields: [assigneeId], references: [id])
+  assigneeId   String?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  statusEvents StatusEvent[]
+  agentRuns    AgentRun[]
+
+  @@index([status])
+  @@index([assigneeId])
+  @@index([submitterId])
+  @@index([category])
+}
+
+enum Category {
+  IT
+  HR
+  FACILITIES
+  OTHER
+}
+
+enum TicketStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+  CLOSED
+}
+
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+model StatusEvent {
+  id         String        @id @default(cuid())
+  ticket     Ticket        @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  ticketId   String
+  fromStatus TicketStatus?
+  toStatus   TicketStatus
+  changedBy  String?
+  changedAt  DateTime      @default(now())
+
+  @@index([ticketId])
+}
+
+model KnowledgeDocument {
+  id          String   @id @default(cuid())
+  title       String
+  filename    String
+  content     String
+  chunkCount  Int      @default(0)
+  uploadedBy  String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  chunks      KnowledgeChunk[]
+}
+
+model KnowledgeChunk {
+  id         String            @id @default(cuid())
+  document   KnowledgeDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  documentId String
+  index      Int
+  content    String
+  createdAt  DateTime          @default(now())
+
+  @@index([documentId])
+}
+
+enum AgentRunStatus {
+  PENDING
+  RUNNING
+  SUCCEEDED
+  FAILED
+}
+
+model AgentRun {
+  id             String           @id @default(cuid())
+  ticket         Ticket           @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  ticketId       String
+  status         AgentRunStatus   @default(PENDING)
+  provider       String
+  model          String
+  startedAt      DateTime         @default(now())
+  finishedAt     DateTime?
+  durationMs     Int?
+  error          String?
+  triggeredBy    User?            @relation(fields: [triggeredById], references: [id])
+  triggeredById  String?
+  steps          AgentStep[]
+  recommendation AiRecommendation?
+  report         AgentReport?
+
+  @@index([ticketId])
+  @@index([status])
+}
+
+model AgentStep {
+  id           String   @id @default(cuid())
+  run          AgentRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+  runId        String
+  name         String
+  status       String
+  input        String?
+  output       String?
+  evidence     String?
+  durationMs   Int?
+  startedAt    DateTime @default(now())
+  finishedAt   DateTime?
+
+  @@index([runId])
+}
+
+enum RecommendationDecision {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model AiRecommendation {
+  id                 String                 @id @default(cuid())
+  run                AgentRun               @relation(fields: [runId], references: [id], onDelete: Cascade)
+  runId              String                 @unique
+  suggestedCategory  Category?
+  suggestedPriority  Priority?
+  draftResponse      String
+  recommendedActions String
+  confidence         Float
+  needsHumanReview   Boolean                @default(true)
+  citations          String
+  decision           RecommendationDecision @default(PENDING)
+  decidedBy          User?                  @relation("RecommendationDecider", fields: [decidedById], references: [id])
+  decidedById        String?
+  decidedAt          DateTime?
+  decisionNote       String?
+  createdAt          DateTime               @default(now())
+}
+
+model AgentReport {
+  id        String   @id @default(cuid())
+  run       AgentRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+  runId     String   @unique
+  title     String
+  body      String
+  metrics   String
+  createdAt DateTime @default(now())
+}
+
+model NotificationLog {
+  id        String   @id @default(cuid())
+  event     String
+  ticketId  String?
+  payload   String
+  createdAt DateTime @default(now())
+
+  @@index([ticketId])
+}
