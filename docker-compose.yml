@@ -1,6 +1,7 @@
 services:
   postgres:
-    image: postgres:16-alpine
+    # pgvector-enabled image for hybrid / semantic knowledge retrieval
+    image: pgvector/pgvector:pg16
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
@@ -10,21 +11,34 @@ services:
     volumes:
       - helpdesk_pgdata:/var/lib/postgresql/data
 
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - helpdesk_redis:/data
+
   ollama:
     image: ollama/ollama:latest
     ports:
       - "11434:11434"
     volumes:
       - ollama_data:/root/.ollama
-    # Uncomment if NVIDIA Container Toolkit is installed:
-    # deploy:
-    #   resources:
-    #     reservations:
-    #       devices:
-    #         - driver: nvidia
-    #           count: 1
-    #           capabilities: [gpu]
+
+  # Local SMTP inbox — UI at http://127.0.0.1:8025
+  mailpit:
+    image: axllent/mailpit:latest
+    ports:
+      - "8025:8025"
+      - "1025:1025"
+
+  # Echo webhook receiver — inspect POSTs at http://127.0.0.1:8089/
+  webhook:
+    image: mendhak/http-https-echo:31
+    ports:
+      - "8089:8080"
 
 volumes:
   helpdesk_pgdata:
+  helpdesk_redis:
   ollama_data:

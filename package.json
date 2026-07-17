@@ -1,5 +1,5 @@
 {
-  "name": "web",
+  "name": "helpdesk-lite",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -13,6 +13,10 @@
     "eval:qwen": "EVAL_PROVIDER=ollama tsx lib/ai/eval/run-eval.ts",
     "smoke:agents": "tsx scripts/smoke-agent-run.ts",
     "smoke:ollama": "tsx scripts/smoke-ollama.ts",
+    "smoke:notify": "tsx scripts/smoke-notify.ts",
+    "smoke:e2e": "tsx scripts/e2e-smoke.ts",
+    "pack:submission": "tsx scripts/pack-submission.ts",
+    "worker": "tsx scripts/worker.ts",
     "db:up": "docker compose up -d",
     "db:migrate": "prisma migrate deploy",
     "db:seed": "tsx prisma/seed.ts",
@@ -26,7 +30,9 @@
     "@prisma/client": "^7.8.0",
     "@types/pdf-parse": "^1.1.5",
     "bcryptjs": "^3.0.3",
+    "bullmq": "^5.80.7",
     "dotenv": "^17.4.2",
+    "ioredis": "^5.11.1",
     "next": "16.2.10",
     "next-auth": "^5.0.0-beta.31",
     "nodemailer": "^7.0.13",
