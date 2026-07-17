@@ -17,8 +17,8 @@ export default async function TicketDetailPage({ params }: PageProps) {
 
   const { id } = await params;
 
-  const ticket = await prisma.ticket.findUnique({
-    where: { id },
+  const ticket = await prisma.ticket.findFirst({
+    where: { id, orgId: session.user.orgId },
     include: {
       submitter: { select: { id: true, name: true, email: true } },
       assignee: { select: { id: true, name: true, email: true } },
@@ -41,6 +41,7 @@ export default async function TicketDetailPage({ params }: PageProps) {
     email: session.user.email ?? "",
     name: session.user.name ?? "",
     role: session.user.role,
+    orgId: session.user.orgId,
   };
 
   if (!canViewTicket(user, ticket)) {
@@ -50,7 +51,7 @@ export default async function TicketDetailPage({ params }: PageProps) {
   const staffUsers =
     session.user.role === Role.STAFF
       ? await prisma.user.findMany({
-          where: { role: Role.STAFF },
+          where: { role: Role.STAFF, orgId: session.user.orgId },
           select: { id: true, name: true },
           orderBy: { name: "asc" },
         })

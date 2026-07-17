@@ -75,6 +75,7 @@ export async function POST(request: NextRequest) {
       title: title.trim(),
       description: description.trim(),
       category,
+      orgId: user.orgId,
       submitterId: user.id,
       statusEvents: {
         create: {

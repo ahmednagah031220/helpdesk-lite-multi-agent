@@ -10,9 +10,10 @@ export default async function QueuePage() {
   if (!session?.user) redirect("/login");
   if (session.user.role !== Role.STAFF) redirect("/dashboard");
 
+  const orgId = session.user.orgId;
   const [unassigned, assignedToMe] = await Promise.all([
     prisma.ticket.findMany({
-      where: { assigneeId: null },
+      where: { orgId, assigneeId: null },
       orderBy: { createdAt: "asc" },
       include: {
         submitter: { select: { name: true } },
@@ -20,7 +21,7 @@ export default async function QueuePage() {
       },
     }),
     prisma.ticket.findMany({
-      where: { assigneeId: session.user.id },
+      where: { orgId, assigneeId: session.user.id },
       orderBy: { updatedAt: "desc" },
       include: {
         submitter: { select: { name: true } },

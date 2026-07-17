@@ -2,11 +2,9 @@ import { auth } from "@/lib/auth";
 import { SessionUser } from "@/lib/permissions";
 import { NextResponse } from "next/server";
 
-export async function requireSession(): Promise<
-  SessionUser | NextResponse
-> {
+export async function requireSession(): Promise<SessionUser | NextResponse> {
   const session = await auth();
-  if (!session?.user?.id) {
+  if (!session?.user?.id || !session.user.orgId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -15,6 +13,7 @@ export async function requireSession(): Promise<
     email: session.user.email ?? "",
     name: session.user.name ?? "",
     role: session.user.role,
+    orgId: session.user.orgId,
   };
 }
 

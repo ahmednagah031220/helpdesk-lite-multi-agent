@@ -18,6 +18,7 @@ export type NotificationEvent =
 
 export type NotifyOptions = {
   recipients?: string[];
+  orgId?: string;
   [key: string]: unknown;
 };
 
@@ -58,11 +59,12 @@ export async function notify(
   ticket: { id: string; title: string },
   extra?: NotifyOptions,
 ) {
-  const { recipients, ...rest } = extra ?? {};
+  const { recipients, orgId, ...rest } = extra ?? {};
   const payload = {
     event,
     ticketId: ticket.id,
     title: ticket.title,
+    orgId,
     ...rest,
     at: new Date().toISOString(),
   };
@@ -71,6 +73,7 @@ export async function notify(
     data: {
       event,
       ticketId: ticket.id,
+      orgId: orgId ?? null,
       payload: JSON.stringify(payload),
     },
   });

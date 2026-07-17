@@ -18,8 +18,8 @@ export async function GET(_request: NextRequest, context: RouteContext) {
 
   const { id } = await context.params;
 
-  const ticket = await prisma.ticket.findUnique({
-    where: { id },
+  const ticket = await prisma.ticket.findFirst({
+    where: { id, orgId: user.orgId },
     include: {
       submitter: { select: { id: true, name: true, email: true } },
       assignee: { select: { id: true, name: true, email: true } },
@@ -44,7 +44,9 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
 
   const { id } = await context.params;
 
-  const ticket = await prisma.ticket.findUnique({ where: { id } });
+  const ticket = await prisma.ticket.findFirst({
+    where: { id, orgId: user.orgId },
+  });
   if (!ticket) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
@@ -141,6 +143,7 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
       "assigned",
       { id: updated.id, title: updated.title },
       {
+        orgId: user.orgId,
         recipients: [
           updated.submitter.email,
           ...(updated.assignee?.email ? [updated.assignee.email] : []),
@@ -154,6 +157,7 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
       "resolved",
       { id: updated.id, title: updated.title },
       {
+        orgId: user.orgId,
         recipients: [updated.submitter.email].filter(Boolean),
         status: updated.status,
       },

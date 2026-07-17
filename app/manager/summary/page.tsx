@@ -25,14 +25,20 @@ export default async function ManagerSummaryPage() {
   if (!session?.user) redirect("/login");
   if (session.user.role !== Role.MANAGER) redirect("/dashboard");
 
+  const orgId = session.user.orgId;
+  const ticketScope = { orgId };
+  const runScope = { ticket: { is: { orgId } } };
+
   const [counts, openTickets, agentTotals, agentSucceeded, recentReports] =
     await Promise.all([
       prisma.ticket.groupBy({
         by: ["status"],
+        where: ticketScope,
         _count: { status: true },
       }),
       prisma.ticket.findMany({
         where: {
+          ...ticketScope,
           status: { in: [TicketStatus.OPEN, TicketStatus.IN_PROGRESS] },
         },
         orderBy: { createdAt: "asc" },
@@ -40,9 +46,10 @@ export default async function ManagerSummaryPage() {
           assignee: { select: { name: true } },
         },
       }),
-      prisma.agentRun.count(),
-      prisma.agentRun.count({ where: { status: "SUCCEEDED" } }),
+      prisma.agentRun.count({ where: runScope }),
+      prisma.agentRun.count({ where: { ...runScope, status: "SUCCEEDED" } }),
       prisma.agentReport.findMany({
+        where: { run: { is: runScope } },
         orderBy: { createdAt: "desc" },
         take: 3,
         include: {

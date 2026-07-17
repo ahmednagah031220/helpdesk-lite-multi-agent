@@ -2,20 +2,15 @@ import { AppHeader } from "@/components/AppHeader";
 import { TicketTable } from "@/components/TicketTable";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import { getTicketListFilter } from "@/lib/permissions";
 import { redirect } from "next/navigation";
 
 export default async function MyTicketsPage() {
   const session = await auth();
   if (!session?.user) redirect("/login");
 
+  // "My tickets" always means tickets this user submitted (all roles), org-scoped.
   const tickets = await prisma.ticket.findMany({
-    where: getTicketListFilter({
-      id: session.user.id,
-      email: session.user.email ?? "",
-      name: session.user.name ?? "",
-      role: session.user.role,
-    }),
+    where: { submitterId: session.user.id, orgId: session.user.orgId },
     orderBy: { updatedAt: "desc" },
     include: {
       submitter: { select: { name: true } },

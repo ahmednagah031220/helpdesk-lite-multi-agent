@@ -6,6 +6,7 @@ const mocks = vi.hoisted(() => ({
     name: "Staff",
     email: "staff@example.com",
     role: "STAFF",
+    orgId: "org-1",
   },
   runCount: vi.fn(),
   recommendationCount: vi.fn(),
@@ -59,6 +60,7 @@ describe("agent metrics API", () => {
     expect(mocks.runCount.mock.calls[0][0].where).toEqual({
       ticket: {
         is: {
+          orgId: "org-1",
           OR: [{ assigneeId: "staff-1" }, { assigneeId: null }],
         },
       },

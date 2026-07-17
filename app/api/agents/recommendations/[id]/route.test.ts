@@ -7,6 +7,7 @@ const mocks = vi.hoisted(() => ({
     name: "Staff",
     email: "staff@example.com",
     role: "STAFF",
+    orgId: "org-1",
   },
   recommendationFind: vi.fn(),
   recommendationUpdate: vi.fn(),

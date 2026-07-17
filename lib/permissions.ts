@@ -5,6 +5,7 @@ export type SessionUser = {
   email: string;
   name: string;
   role: Role;
+  orgId: string;
 };
 
 export function canCreateTicket(): boolean {
@@ -13,8 +14,9 @@ export function canCreateTicket(): boolean {
 
 export function canViewTicket(
   user: SessionUser,
-  ticket: { submitterId: string; assigneeId: string | null },
+  ticket: { submitterId: string; assigneeId: string | null; orgId?: string },
 ): boolean {
+  if (ticket.orgId && ticket.orgId !== user.orgId) return false;
   if (user.role === Role.MANAGER) return true;
   if (user.role === Role.STAFF) {
     return ticket.assigneeId === user.id || ticket.assigneeId === null;
@@ -51,22 +53,22 @@ export function canViewAgentRuns(user: SessionUser): boolean {
 }
 
 export function getTicketListFilter(user: SessionUser) {
+  const orgScope = { orgId: user.orgId };
   switch (user.role) {
     case Role.MANAGER:
-      return {};
+      return orgScope;
     case Role.STAFF:
       return {
+        ...orgScope,
         OR: [{ assigneeId: user.id }, { assigneeId: null }],
       };
     case Role.EMPLOYEE:
     default:
-      return { submitterId: user.id };
+      return { ...orgScope, submitterId: user.id };
   }
 }
 
 export function getAgentRunListFilter(user: SessionUser) {
   const ticketFilter = getTicketListFilter(user);
-  return Object.keys(ticketFilter).length === 0
-    ? {}
-    : { ticket: { is: ticketFilter } };
+  return { ticket: { is: ticketFilter } };
 }

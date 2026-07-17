@@ -17,6 +17,7 @@ export default async function AgentsPage() {
     email: session.user.email ?? "",
     name: session.user.name ?? "",
     role: session.user.role,
+    orgId: session.user.orgId,
   };
 
   if (!canViewAgentRuns(user)) redirect("/dashboard");

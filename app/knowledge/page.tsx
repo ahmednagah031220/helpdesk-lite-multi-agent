@@ -14,11 +14,13 @@ export default async function KnowledgePage() {
     email: session.user.email ?? "",
     name: session.user.name ?? "",
     role: session.user.role,
+    orgId: session.user.orgId,
   };
 
   if (!canManageKnowledge(user)) redirect("/dashboard");
 
   const docs = await prisma.knowledgeDocument.findMany({
+    where: { orgId: user.orgId },
     orderBy: { createdAt: "desc" },
   });
 
