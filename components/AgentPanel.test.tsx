@@ -62,7 +62,7 @@ describe("AgentPanel", () => {
       "/api/agents/run",
       expect.objectContaining({
         method: "POST",
-        body: JSON.stringify({ ticketId: "ticket-1" }),
+        body: JSON.stringify({ ticketId: "ticket-1", async: true }),
       }),
     );
     expect(await screen.findByText(/Please restart the network adapter/)).toBeTruthy();
