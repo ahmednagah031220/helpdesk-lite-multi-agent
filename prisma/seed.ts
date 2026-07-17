@@ -267,27 +267,57 @@ function hoursAgo(daysAgo: number, hoursAfterCreate: number): Date {
 async function main() {
   const hashed = hashSync(PASSWORD, 10);
 
+  const org = await prisma.organization.upsert({
+    where: { slug: "acme" },
+    update: { name: "Acme Corp" },
+    create: {
+      id: "org_default_acme",
+      name: "Acme Corp",
+      slug: "acme",
+    },
+  });
+
   for (const user of USERS) {
     await prisma.user.upsert({
-      where: { email: user.email },
-      update: { name: user.name, role: user.role },
-      create: { ...user, password: hashed },
+      where: { orgId_email: { orgId: org.id, email: user.email } },
+      update: { name: user.name, role: user.role, password: hashed },
+      create: {
+        ...user,
+        password: hashed,
+        orgId: org.id,
+        authProvider: "credentials",
+      },
     });
   }
 
   const userByEmail = Object.fromEntries(
-    (await prisma.user.findMany()).map((user) => [user.email, user]),
+    (await prisma.user.findMany({ where: { orgId: org.id } })).map((user) => [
+      user.email,
+      user,
+    ]),
   );
 
-  await prisma.notificationLog.deleteMany();
-  await prisma.agentReport.deleteMany();
-  await prisma.aiRecommendation.deleteMany();
-  await prisma.agentStep.deleteMany();
-  await prisma.agentRun.deleteMany();
-  await prisma.knowledgeChunk.deleteMany();
-  await prisma.knowledgeDocument.deleteMany();
-  await prisma.statusEvent.deleteMany();
-  await prisma.ticket.deleteMany();
+  await prisma.notificationLog.deleteMany({ where: { orgId: org.id } });
+  await prisma.agentReport.deleteMany({
+    where: { run: { ticket: { orgId: org.id } } },
+  });
+  await prisma.aiRecommendation.deleteMany({
+    where: { run: { ticket: { orgId: org.id } } },
+  });
+  await prisma.agentStep.deleteMany({
+    where: { run: { ticket: { orgId: org.id } } },
+  });
+  await prisma.agentRun.deleteMany({
+    where: { ticket: { orgId: org.id } },
+  });
+  await prisma.knowledgeChunk.deleteMany({
+    where: { document: { orgId: org.id } },
+  });
+  await prisma.knowledgeDocument.deleteMany({ where: { orgId: org.id } });
+  await prisma.statusEvent.deleteMany({
+    where: { ticket: { orgId: org.id } },
+  });
+  await prisma.ticket.deleteMany({ where: { orgId: org.id } });
 
   for (const mock of TICKETS) {
     const submitter = userByEmail[mock.submitterEmail];
@@ -309,6 +339,7 @@ async function main() {
         description: mock.description,
         category: mock.category,
         status: mock.status,
+        orgId: org.id,
         submitterId: submitter.id,
         assigneeId: assignee?.id ?? null,
         createdAt,
@@ -322,7 +353,6 @@ async function main() {
             } else if (step.changedBy === "assignee") {
               changedByUser = assignee ?? staffUser;
             } else {
-              // "staff" — a staff actor, not necessarily the ticket assignee
               changedByUser = staffUser;
             }
 
@@ -359,30 +389,43 @@ Onboarding
 Coordinate laptop, badge, and account setup for new hires at least five business days before start date.
 `;
 
+  const { persistChunkEmbedding } = await import("../lib/ai/retrieval/pdf");
   const chunks = handbook.match(/[\s\S]{1,700}/g) ?? [handbook];
-  await prisma.knowledgeDocument.create({
+  const doc = await prisma.knowledgeDocument.create({
     data: {
       title: "Internal Support Handbook",
       filename: "internal-support-handbook.txt",
       content: handbook,
       chunkCount: chunks.length,
+      orgId: org.id,
       uploadedBy: userByEmail["staff@helpdesk.local"]?.id,
       chunks: {
         create: chunks.map((content, index) => ({ index, content })),
       },
     },
+    include: { chunks: true },
   });
+
+  process.env.EMBEDDING_PROVIDER = process.env.EMBEDDING_PROVIDER ?? "local";
+  for (const chunk of doc.chunks) {
+    await persistChunkEmbedding(chunk.id, chunk.content);
+  }
 
   const counts = await prisma.ticket.groupBy({
     by: ["status"],
+    where: { orgId: org.id },
     _count: { status: true },
   });
 
   console.log("Seed complete — mock data loaded.");
+  console.log(`  Org: ${org.name} (${org.slug})`);
   console.log(`  Users: ${USERS.length}`);
   console.log(`  Tickets: ${TICKETS.length}`);
-  console.log(`  Knowledge docs: 1`);
-  console.log("  By status:", Object.fromEntries(counts.map((c) => [c.status, c._count.status])));
+  console.log(`  Knowledge docs: 1 (${doc.chunks.length} embedded chunks)`);
+  console.log(
+    "  By status:",
+    Object.fromEntries(counts.map((c) => [c.status, c._count.status])),
+  );
   console.log("\nAll accounts use password: password123");
   console.log("  Employee: employee@helpdesk.local (+ dan, eva, frank, grace)");
   console.log("  Staff:    staff@helpdesk.local (+ helen, ian)");

@@ -7,18 +7,40 @@ datasource db {
   provider = "postgresql"
 }
 
-model User {
+model Organization {
   id        String   @id @default(cuid())
   name      String
-  email     String   @unique
-  password  String
-  role      Role     @default(EMPLOYEE)
+  slug      String   @unique
   createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  submittedTickets Ticket[] @relation("SubmittedTickets")
-  assignedTickets  Ticket[] @relation("AssignedTickets")
+  users               User[]
+  tickets             Ticket[]
+  knowledgeDocuments KnowledgeDocument[]
+  notificationLogs    NotificationLog[]
+}
+
+model User {
+  id           String       @id @default(cuid())
+  name         String
+  email        String
+  /// Null for SSO-only accounts
+  password     String?
+  role         Role         @default(EMPLOYEE)
+  /// credentials | google | oidc
+  authProvider String       @default("credentials")
+  orgId        String
+  org          Organization @relation(fields: [orgId], references: [id])
+  createdAt    DateTime     @default(now())
+
+  submittedTickets Ticket[]            @relation("SubmittedTickets")
+  assignedTickets  Ticket[]            @relation("AssignedTickets")
   agentRuns        AgentRun[]
-  decisions        AiRecommendation[] @relation("RecommendationDecider")
+  decisions        AiRecommendation[]  @relation("RecommendationDecider")
+
+  @@unique([orgId, email])
+  @@index([orgId])
+  @@index([email])
 }
 
 enum Role {
@@ -34,6 +56,8 @@ model Ticket {
   category     Category
   status       TicketStatus  @default(OPEN)
   priority     Priority?
+  orgId        String
+  org          Organization  @relation(fields: [orgId], references: [id])
   submitter    User          @relation("SubmittedTickets", fields: [submitterId], references: [id])
   submitterId  String
   assignee     User?         @relation("AssignedTickets", fields: [assigneeId], references: [id])
@@ -43,10 +67,12 @@ model Ticket {
   statusEvents StatusEvent[]
   agentRuns    AgentRun[]
 
+  @@index([orgId])
   @@index([status])
   @@index([assigneeId])
   @@index([submitterId])
   @@index([category])
+  @@index([orgId, status])
 }
 
 enum Category {
@@ -83,24 +109,30 @@ model StatusEvent {
 }
 
 model KnowledgeDocument {
-  id          String   @id @default(cuid())
+  id          String           @id @default(cuid())
   title       String
   filename    String
   content     String
-  chunkCount  Int      @default(0)
+  chunkCount  Int              @default(0)
+  orgId       String
+  org         Organization     @relation(fields: [orgId], references: [id])
   uploadedBy  String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
   chunks      KnowledgeChunk[]
+
+  @@index([orgId])
 }
 
 model KnowledgeChunk {
-  id         String            @id @default(cuid())
-  document   KnowledgeDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  id         String                    @id @default(cuid())
+  document   KnowledgeDocument         @relation(fields: [documentId], references: [id], onDelete: Cascade)
   documentId String
   index      Int
   content    String
-  createdAt  DateTime          @default(now())
+  /// pgvector column — managed via raw SQL / Unsupported
+  embedding  Unsupported("vector")?
+  createdAt  DateTime                  @default(now())
 
   @@index([documentId])
 }
@@ -113,17 +145,19 @@ enum AgentRunStatus {
 }
 
 model AgentRun {
-  id             String           @id @default(cuid())
-  ticket         Ticket           @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  id             String            @id @default(cuid())
+  ticket         Ticket            @relation(fields: [ticketId], references: [id], onDelete: Cascade)
   ticketId       String
-  status         AgentRunStatus   @default(PENDING)
+  status         AgentRunStatus    @default(PENDING)
   provider       String
   model          String
-  startedAt      DateTime         @default(now())
+  /// BullMQ job id when queued
+  jobId          String?
+  startedAt      DateTime          @default(now())
   finishedAt     DateTime?
   durationMs     Int?
   error          String?
-  triggeredBy    User?            @relation(fields: [triggeredById], references: [id])
+  triggeredBy    User?             @relation(fields: [triggeredById], references: [id])
   triggeredById  String?
   steps          AgentStep[]
   recommendation AiRecommendation?
@@ -131,11 +165,12 @@ model AgentRun {
 
   @@index([ticketId])
   @@index([status])
+  @@index([jobId])
 }
 
 model AgentStep {
-  id           String   @id @default(cuid())
-  run          AgentRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+  id           String    @id @default(cuid())
+  run          AgentRun  @relation(fields: [runId], references: [id], onDelete: Cascade)
   runId        String
   name         String
   status       String
@@ -143,7 +178,7 @@ model AgentStep {
   output       String?
   evidence     String?
   durationMs   Int?
-  startedAt    DateTime @default(now())
+  startedAt    DateTime  @default(now())
   finishedAt   DateTime?
 
   @@index([runId])
@@ -185,11 +220,14 @@ model AgentReport {
 }
 
 model NotificationLog {
-  id        String   @id @default(cuid())
+  id        String        @id @default(cuid())
   event     String
   ticketId  String?
+  orgId     String?
+  org       Organization? @relation(fields: [orgId], references: [id])
   payload   String
-  createdAt DateTime @default(now())
+  createdAt DateTime      @default(now())
 
   @@index([ticketId])
+  @@index([orgId])
 }
