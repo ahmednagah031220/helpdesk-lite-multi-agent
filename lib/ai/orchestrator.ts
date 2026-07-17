@@ -72,10 +72,27 @@ async function executeStep<T>(input: {
   }
 }
 
+export async function createPendingAgentRun(input: {
+  ticketId: string;
+  triggeredById?: string;
+}) {
+  return prisma.agentRun.create({
+    data: {
+      ticketId: input.ticketId,
+      status: "PENDING",
+      provider: "pending",
+      model: "pending",
+      triggeredById: input.triggeredById,
+    },
+  });
+}
+
 export async function runTicketAgents(input: {
   ticketId: string;
   triggeredById?: string;
   provider?: LlmProvider;
+  /** Reuse a PENDING run created for async/background execution */
+  existingRunId?: string;
 }) {
   const ticket = await prisma.ticket.findUniqueOrThrow({
     where: { id: input.ticketId },
@@ -87,30 +104,43 @@ export async function runTicketAgents(input: {
       ? provider.name.replace("ollama:", "")
       : process.env.OLLAMA_MODEL ?? "qwen2.5:7b";
 
-  const run = await prisma.agentRun.create({
-    data: {
-      ticketId: ticket.id,
-      status: "RUNNING",
-      provider: provider.name,
-      model,
-      triggeredById: input.triggeredById,
-    },
-  });
+  const run = input.existingRunId
+    ? await prisma.agentRun.update({
+        where: { id: input.existingRunId },
+        data: {
+          status: "RUNNING",
+          provider: provider.name,
+          model,
+          startedAt: new Date(),
+          error: null,
+        },
+      })
+    : await prisma.agentRun.create({
+        data: {
+          ticketId: ticket.id,
+          status: "RUNNING",
+          provider: provider.name,
+          model,
+          triggeredById: input.triggeredById,
+        },
+      });
 
   const started = Date.now();
 
   try {
-    // Parallel retrieval
+    // Parallel retrieval (org-scoped)
     const retrievalStart = Date.now();
     const [ticketResult, pdfResult] = await Promise.allSettled([
       retrieveSimilarTickets({
         ticketId: ticket.id,
         title: ticket.title,
         description: ticket.description,
+        orgId: ticket.orgId,
       }),
       retrievePdfKnowledge({
         title: ticket.title,
         description: ticket.description,
+        orgId: ticket.orgId,
       }),
     ]);
 
@@ -276,6 +306,7 @@ export async function runTicketAgents(input: {
       "ai_run_completed",
       { id: ticket.id, title: ticket.title },
       {
+        orgId: ticket.orgId,
         runId: run.id,
         recommendationId: recommendation.id,
         reportId: report.id,
@@ -289,6 +320,7 @@ export async function runTicketAgents(input: {
       "ai_report_generated",
       { id: ticket.id, title: ticket.title },
       {
+        orgId: ticket.orgId,
         runId: run.id,
         reportId: report.id,
         title: report.title,

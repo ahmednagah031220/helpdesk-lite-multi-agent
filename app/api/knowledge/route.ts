@@ -1,4 +1,4 @@
-import { chunkText } from "@/lib/ai/retrieval/chunk";
+import { chunkText, persistChunkEmbedding } from "@/lib/ai/retrieval/pdf";
 import { prisma } from "@/lib/db";
 import { canManageKnowledge } from "@/lib/permissions";
 import { isErrorResponse, requireSession } from "@/lib/session";
@@ -15,6 +15,7 @@ export async function GET() {
   }
 
   const docs = await prisma.knowledgeDocument.findMany({
+    where: { orgId: user.orgId },
     orderBy: { createdAt: "desc" },
     select: {
       id: true,
@@ -86,6 +87,7 @@ export async function POST(request: NextRequest) {
       filename,
       content,
       chunkCount: chunks.length,
+      orgId: user.orgId,
       uploadedBy: user.id,
       chunks: {
         create: chunks.map((chunk, index) => ({
@@ -95,9 +97,25 @@ export async function POST(request: NextRequest) {
       },
     },
     include: {
-      chunks: { select: { id: true, index: true } },
+      chunks: { select: { id: true, index: true, content: true } },
     },
   });
 
-  return NextResponse.json(doc, { status: 201 });
+  // Embed chunks (local or Ollama) into pgvector
+  await Promise.all(
+    doc.chunks.map((chunk) => persistChunkEmbedding(chunk.id, chunk.content)),
+  );
+
+  return NextResponse.json(
+    {
+      id: doc.id,
+      title: doc.title,
+      filename: doc.filename,
+      chunkCount: doc.chunkCount,
+      createdAt: doc.createdAt,
+      uploadedBy: doc.uploadedBy,
+      chunks: doc.chunks.map(({ id, index }) => ({ id, index })),
+    },
+    { status: 201 },
+  );
 }

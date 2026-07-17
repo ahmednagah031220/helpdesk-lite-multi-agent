@@ -7,11 +7,13 @@ const mocks = vi.hoisted(() => ({
     name: "Staff",
     email: "staff@example.com",
     role: "STAFF",
+    orgId: "org-1",
   },
   documentFindMany: vi.fn(),
   documentCreate: vi.fn(),
   pdfGetText: vi.fn(),
   pdfDestroy: vi.fn(),
+  persistEmbedding: vi.fn(),
 }));
 
 vi.mock("@/lib/session", () => ({
@@ -32,6 +34,13 @@ vi.mock("pdf-parse", () => ({
     destroy = mocks.pdfDestroy;
   },
 }));
+vi.mock("@/lib/ai/retrieval/pdf", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/ai/retrieval/pdf")>();
+  return {
+    ...actual,
+    persistChunkEmbedding: mocks.persistEmbedding,
+  };
+});
 
 import { GET, POST } from "@/app/api/knowledge/route";
 
@@ -49,6 +58,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   mocks.user.role = "STAFF";
   mocks.documentFindMany.mockResolvedValue([]);
+  mocks.persistEmbedding.mockResolvedValue(undefined);
   mocks.documentCreate.mockImplementation(async ({ data }) => ({
     id: "doc-1",
     ...data,
@@ -56,6 +66,7 @@ beforeEach(() => {
       (chunk: { index: number; content: string }) => ({
         id: `chunk-${chunk.index}`,
         index: chunk.index,
+        content: chunk.content,
       }),
     ),
   }));
@@ -71,12 +82,15 @@ describe("knowledge API", () => {
     const response = await GET();
 
     expect(response.status).toBe(200);
+    expect(mocks.documentFindMany).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { orgId: "org-1" } }),
+    );
     await expect(response.json()).resolves.toEqual([
       { id: "doc-1", title: "Handbook", filename: "handbook.txt" },
     ]);
   });
 
-  it("chunks and persists a text knowledge source", async () => {
+  it("chunks, scopes to org, and embeds a text knowledge source", async () => {
     const content = "network handbook ".repeat(100);
     const response = await POST(
       uploadRequest(
@@ -90,6 +104,7 @@ describe("knowledge API", () => {
       data: expect.objectContaining({
         title: "Internal Handbook",
         filename: "handbook.txt",
+        orgId: "org-1",
         uploadedBy: "staff-1",
         chunkCount: expect.any(Number),
         chunks: {
@@ -99,9 +114,10 @@ describe("knowledge API", () => {
         },
       }),
       include: {
-        chunks: { select: { id: true, index: true } },
+        chunks: { select: { id: true, index: true, content: true } },
       },
     });
+    expect(mocks.persistEmbedding).toHaveBeenCalled();
     expect(
       mocks.documentCreate.mock.calls[0][0].data.chunkCount,
     ).toBeGreaterThan(1);
@@ -124,6 +140,7 @@ describe("knowledge API", () => {
         data: expect.objectContaining({
           filename: "handbook.pdf",
           content: "Extracted PDF handbook guidance",
+          orgId: "org-1",
         }),
       }),
     );
