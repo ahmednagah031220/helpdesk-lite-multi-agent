@@ -95,10 +95,23 @@ async function main() {
     cases: rows,
   };
 
-  const outDir = path.resolve(process.cwd(), "../submission/final-project");
-  mkdirSync(outDir, { recursive: true });
-  const outFile = path.join(outDir, "evaluation-report.json");
-  writeFileSync(outFile, JSON.stringify(report, null, 2));
+  const stamp = provider.name.replace(/[^a-z0-9._-]+/gi, "-");
+  const outDirs = [
+    path.resolve(process.cwd(), "submission/final-project"),
+    path.resolve(process.cwd(), "../submission/final-project"),
+  ];
+  const fileName = `evaluation-report-${stamp}.json`;
+  const latestName = "evaluation-report.json";
+
+  let primaryOut = "";
+  for (const outDir of outDirs) {
+    mkdirSync(outDir, { recursive: true });
+    const named = path.join(outDir, fileName);
+    const latest = path.join(outDir, latestName);
+    writeFileSync(named, JSON.stringify(report, null, 2));
+    writeFileSync(latest, JSON.stringify(report, null, 2));
+    if (!primaryOut) primaryOut = named;
+  }
 
   console.log(`Evaluation complete`);
   console.log(`  Cases: ${report.total}`);
@@ -107,7 +120,7 @@ async function main() {
   console.log(
     `  Multi-step completion rate: ${(report.multiStepCompletionRate * 100).toFixed(1)}%`,
   );
-  console.log(`  Wrote ${outFile}`);
+  console.log(`  Wrote ${primaryOut}`);
 
   const minimumAccuracy = Number(process.env.EVAL_MIN_ACCURACY ?? 0.7);
   const minimumValidRate = Number(process.env.EVAL_MIN_VALID_RATE ?? 0.8);

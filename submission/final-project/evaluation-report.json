@@ -1,0 +1,133 @@
+{
+  "generatedAt": "2026-07-17T22:00:02.383Z",
+  "provider": "ollama:qwen2.5:7b",
+  "total": 12,
+  "validOutputs": 12,
+  "validOutputRate": 1,
+  "categoryAccuracy": 0.9166666666666666,
+  "successfulMultiStepCompletions": 12,
+  "multiStepCompletionRate": 1,
+  "durationMs": 1345921,
+  "cases": [
+    {
+      "id": "g1",
+      "expected": "IT",
+      "predicted": "IT",
+      "correct": true,
+      "confidence": 0.85,
+      "multiStepCompleted": true,
+      "evaluatorApproved": true,
+      "durationMs": 85442
+    },
+    {
+      "id": "g2",
+      "expected": "IT",
+      "predicted": "IT",
+      "correct": true,
+      "confidence": 0.95,
+      "multiStepCompleted": true,
+      "evaluatorApproved": true,
+      "durationMs": 78117
+    },
+    {
+      "id": "g3",
+      "expected": "IT",
+      "predicted": "FACILITIES",
+      "correct": false,
+      "confidence": 0.85,
+      "multiStepCompleted": true,
+      "evaluatorApproved": true,
+      "durationMs": 92520
+    },
+    {
+      "id": "g4",
+      "expected": "HR",
+      "predicted": "HR",
+      "correct": true,
+      "confidence": 0.85,
+      "multiStepCompleted": true,
+      "evaluatorApproved": true,
+      "durationMs": 82611
+    },
+    {
+      "id": "g5",
+      "expected": "HR",
+      "predicted": "HR",
+      "correct": true,
+      "confidence": 0.95,
+      "multiStepCompleted": true,
+      "evaluatorApproved": true,
+      "durationMs": 93591
+    },
+    {
+      "id": "g6",
+      "expected": "HR",
+      "predicted": "HR",
+      "correct": true,
+      "confidence": 0.8,
+      "multiStepCompleted": true,
+      "evaluatorApproved": true,
+      "durationMs": 108626
+    },
+    {
+      "id": "g7",
+      "expected": "FACILITIES",
+      "predicted": "FACILITIES",
+      "correct": true,
+      "confidence": 0.85,
+      "multiStepCompleted": true,
+      "evaluatorApproved": true,
+      "durationMs": 100071
+    },
+    {
+      "id": "g8",
+      "expected": "FACILITIES",
+      "predicted": "FACILITIES",
+      "correct": true,
+      "confidence": 0.95,
+      "multiStepCompleted": true,
+      "evaluatorApproved": true,
+      "durationMs": 104610
+    },
+    {
+      "id": "g9",
+      "expected": "FACILITIES",
+      "predicted": "FACILITIES",
+      "correct": true,
+      "confidence": 0.95,
+      "multiStepCompleted": true,
+      "evaluatorApproved": true,
+      "durationMs": 133715
+    },
+    {
+      "id": "g10",
+      "expected": "OTHER",
+      "predicted": "OTHER",
+      "correct": true,
+      "confidence": 0.85,
+      "multiStepCompleted": true,
+      "evaluatorApproved": true,
+      "durationMs": 179323
+    },
+    {
+      "id": "g11",
+      "expected": "IT",
+      "predicted": "IT",
+      "correct": true,
+      "confidence": 0.95,
+      "multiStepCompleted": true,
+      "evaluatorApproved": true,
+      "durationMs": 141363
+    },
+    {
+      "id": "g12",
+      "expected": "FACILITIES",
+      "predicted": "FACILITIES",
+      "correct": true,
+      "confidence": 0.85,
+      "multiStepCompleted": true,
+      "evaluatorApproved": true,
+      "durationMs": 145931
+    }
+  ]
+}

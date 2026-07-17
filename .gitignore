@@ -45,3 +45,6 @@ yarn-error.log*
 next-env.d.ts
 
 /app/generated/prisma
+
+# local eval copies outside the committed submission pack
+# (reports inside submission/final-project are intentionally kept)
