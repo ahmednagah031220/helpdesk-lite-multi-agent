@@ -137,10 +137,27 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
   });
 
   if (assigneeId !== undefined && assigneeId !== ticket.assigneeId) {
-    await notify("assigned", { id: updated.id, title: updated.title });
+    await notify(
+      "assigned",
+      { id: updated.id, title: updated.title },
+      {
+        recipients: [
+          updated.submitter.email,
+          ...(updated.assignee?.email ? [updated.assignee.email] : []),
+        ].filter(Boolean),
+        assigneeId: updated.assigneeId,
+      },
+    );
   }
   if (status === TicketStatus.RESOLVED) {
-    await notify("resolved", { id: updated.id, title: updated.title });
+    await notify(
+      "resolved",
+      { id: updated.id, title: updated.title },
+      {
+        recipients: [updated.submitter.email].filter(Boolean),
+        status: updated.status,
+      },
+    );
   }
 
   return NextResponse.json(updated);

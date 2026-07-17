@@ -67,6 +67,8 @@ beforeEach(() => {
   mocks.runCreate.mockResolvedValue({ id: "run-1" });
   mocks.runUpdate.mockResolvedValue({});
   mocks.stepCreate.mockResolvedValue({});
+  mocks.reportCreate.mockResolvedValue({ id: "report-1", title: "AI brief: WiFi issue" });
+  mocks.notificationCreate.mockResolvedValue({});
   mocks.retrieveTickets.mockResolvedValue([
     {
       id: "old-1",
@@ -159,9 +161,16 @@ describe("runTicketAgents", () => {
       }),
     });
     expect(mocks.reportCreate).toHaveBeenCalledOnce();
+    expect(mocks.notificationCreate).toHaveBeenCalledTimes(2);
     expect(mocks.notificationCreate).toHaveBeenCalledWith({
       data: expect.objectContaining({
         event: "ai_run_completed",
+        ticketId: "ticket-1",
+      }),
+    });
+    expect(mocks.notificationCreate).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        event: "ai_report_generated",
         ticketId: "ticket-1",
       }),
     });

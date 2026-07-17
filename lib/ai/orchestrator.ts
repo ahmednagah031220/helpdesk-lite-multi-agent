@@ -7,6 +7,7 @@ import { retrievePdfKnowledge } from "@/lib/ai/retrieval/pdf";
 import { retrieveSimilarTickets } from "@/lib/ai/retrieval/tickets";
 import type { AgentName, LlmProvider } from "@/lib/ai/types";
 import { prisma } from "@/lib/db";
+import { notify } from "@/lib/notifications";
 
 async function recordStep(input: {
   runId: string;
@@ -245,7 +246,7 @@ export async function runTicketAgents(input: {
       knowledge.summary,
     ].join("\n");
 
-    await prisma.agentReport.create({
+    const report = await prisma.agentReport.create({
       data: {
         runId: run.id,
         title: `AI brief: ${ticket.title}`,
@@ -271,18 +272,28 @@ export async function runTicketAgents(input: {
       },
     });
 
-    await prisma.notificationLog.create({
-      data: {
-        event: "ai_run_completed",
-        ticketId: ticket.id,
-        payload: JSON.stringify({
-          runId: run.id,
-          recommendationId: recommendation.id,
-          category: triage.category,
-          priority: triage.priority,
-        }),
+    await notify(
+      "ai_run_completed",
+      { id: ticket.id, title: ticket.title },
+      {
+        runId: run.id,
+        recommendationId: recommendation.id,
+        reportId: report.id,
+        category: triage.category,
+        priority: triage.priority,
+        confidence: recommendation.confidence,
       },
-    });
+    );
+
+    await notify(
+      "ai_report_generated",
+      { id: ticket.id, title: ticket.title },
+      {
+        runId: run.id,
+        reportId: report.id,
+        title: report.title,
+      },
+    );
 
     return prisma.agentRun.findUniqueOrThrow({
       where: { id: run.id },
