@@ -147,13 +147,18 @@ Open http://localhost:3000. Seeded accounts (password `password123`):
 | Staff (support) | `staff@helpdesk.local` |
 | Manager | `manager@helpdesk.local` |
 
-### Optional: run real LLMs with Ollama
+### Optional: run real LLMs with Ollama (GPU)
+
+Models should use the NVIDIA GPU (`size_vram > 0`). Full steps: `docs/setup.md`.
 
 ```bash
-docker compose up -d ollama
+# One-time (Ubuntu): ./scripts/install-nvidia-container-toolkit.sh
+docker compose --profile gpu up -d ollama
 docker exec -it $(docker ps -qf name=ollama) ollama pull qwen2.5:7b
-# .env already points AI_PROVIDER="auto" at http://127.0.0.1:11434
+# .env: AI_PROVIDER=auto → http://127.0.0.1:11434
 ```
+
+Confirm: `curl -s http://127.0.0.1:11434/api/ps` and `nvidia-smi`. Host Ollama is an alternative if you skip the toolkit.
 
 Without Ollama the app automatically uses the deterministic mock provider.
 

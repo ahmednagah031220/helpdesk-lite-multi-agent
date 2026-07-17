@@ -5,10 +5,19 @@
 ```bash
 cp .env.example .env
 npm install
-npm run db:up          # postgres + ollama + mailpit + webhook echo
+npm run db:up          # postgres + redis + mailpit + webhook (not Ollama)
 npm run db:migrate
 npm run db:seed
 npm run dev            # http://localhost:3000
+```
+
+### Ollama on GPU (optional, for real LLM / `eval:qwen`)
+
+```bash
+# One-time: ./scripts/install-nvidia-container-toolkit.sh
+docker compose --profile gpu up -d ollama
+docker exec -it $(docker ps -qf name=ollama) ollama pull qwen2.5:7b
+# Confirm GPU: curl -s http://127.0.0.1:11434/api/ps  → size_vram > 0
 ```
 
 Demo accounts (password `password123`):
@@ -26,7 +35,7 @@ Demo accounts (password `password123`):
 
 ```bash
 npm run eval           # mock provider
-npm run eval:qwen      # local Ollama qwen2.5:7b
+npm run eval:qwen      # local Ollama qwen2.5:7b (GPU)
 ```
 
 Reports are copied into this folder as `evaluation-report*.json`.
