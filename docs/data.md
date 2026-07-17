@@ -98,5 +98,7 @@ before optional email/webhook delivery.
 2. Score overlap against recent tickets / knowledge chunks
 3. Top-N hits become **evidence** for triage and knowledge agents
 
-No vector DB is required; ranking is lexical overlap suitable for the demo
-scale and reproducible offline tests.
+No vector DB is required for the default path; ranking uses **BM25-lite**
+token scoring (`lib/ai/retrieval/score.ts`) with stopword filtering and title
+boost. This stays deterministic for tests while ranking more usefully than raw
+overlap.

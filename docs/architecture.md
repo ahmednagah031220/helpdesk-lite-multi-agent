@@ -89,7 +89,9 @@ Support approves / rejects recommendation
 4. **Graceful degradation** — Retrieval uses `Promise.allSettled`; provider
    selection falls back to mock when Ollama is unreachable; email/webhook
    failures never break the request after the audit log is written.
-5. **Role-based access** — `EMPLOYEE`, `STAFF`, `MANAGER` with filters in
+5. **Async agent runs by default** — `POST /api/agents/run` returns `202` and
+   continues via Next.js `after()`; the UI polls `GET /api/agents/runs/[id]`.
+6. **Role-based access** — `EMPLOYEE`, `STAFF`, `MANAGER` with filters in
    `lib/permissions.ts`.
 
 ## Provider selection

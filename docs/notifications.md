@@ -28,33 +28,33 @@ request after the audit log is written.
 Configured via:
 
 ```env
-SMTP_HOST=smtp.example.com
-SMTP_PORT=587
+SMTP_HOST=127.0.0.1
+SMTP_PORT=1025
 SMTP_SECURE=false
-SMTP_USER=apikey
-SMTP_PASS=secret
-SMTP_FROM="HelpDesk Lite <noreply@example.com>"
+SMTP_FROM="HelpDesk Lite <noreply@helpdesk.local>"
 NOTIFY_EMAIL_TO=staff@example.com,manager@example.com
 ```
 
+Local demo uses **Mailpit** (`docker compose` service `mailpit`):
+- SMTP: `127.0.0.1:1025`
+- Web UI: http://127.0.0.1:8025
+
 - Uses **nodemailer**
-- Per-call `recipients` in `extra` override `NOTIFY_EMAIL_TO` (e.g. ticket
-  submitter/assignee on assign/resolve)
+- Per-call `recipients` in `extra` override `NOTIFY_EMAIL_TO`
 - Skipped entirely when `SMTP_HOST` / `SMTP_FROM` / recipients are missing
 
 ## Webhook
 
 ```env
-WEBHOOK_URL=https://hooks.example.com/helpdesk
+WEBHOOK_URL=http://127.0.0.1:8089/
 WEBHOOK_SECRET=optional-shared-secret
 WEBHOOK_TIMEOUT_MS=10000
 ```
 
-- `POST` JSON body = notification payload + `"source": "helpdesk-lite"`
-- If `WEBHOOK_SECRET` is set, sends:
-  - `Authorization: Bearer <secret>`
-  - `X-Webhook-Secret: <secret>`
-- Compatible with Slack incoming webhooks, Zapier, n8n, custom receivers, etc.
+Local demo uses **http-https-echo** (`docker compose` service `webhook`):
+- Inspect last request: http://127.0.0.1:8089/
+
+Smoke: `npm run smoke:notify`
 
 ### Example payload
 

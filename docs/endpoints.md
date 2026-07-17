@@ -51,7 +51,7 @@ Login UI: `/login` (server action in `app/login/actions.ts`).
 
 | Method | Path | Roles | Description |
 |--------|------|-------|-------------|
-| POST | `/api/agents/run` | STAFF, MANAGER | Run the full multi-agent pipeline for a ticket |
+| POST | `/api/agents/run` | STAFF, MANAGER | Enqueue/run multi-agent pipeline. Default `{ async: true }` returns `202` + `PENDING` run (poll `GET /api/agents/runs/[id]`). Pass `{ async: false }` for synchronous `201`. |
 | GET | `/api/agents/runs/[id]` | STAFF, MANAGER | Fetch one run with steps / recommendation / report |
 | GET | `/api/agents/metrics` | STAFF, MANAGER | Aggregate success rate, latency, pending recs, recent reports |
 | PATCH | `/api/agents/recommendations/[id]` | STAFF | Approve or reject an AI recommendation |

@@ -13,9 +13,10 @@ npm install
 cp .env.example .env
 # set AUTH_SECRET, e.g. openssl rand -base64 32
 
-npm run db:up          # postgres (+ optional ollama service)
+npm run db:up          # postgres (pgvector) + redis + ollama + mailpit + webhook
 npm run db:migrate
 npm run db:seed
+npm run worker         # BullMQ agent worker (separate terminal)
 npm run dev            # http://localhost:3000
 ```
 
@@ -27,6 +28,11 @@ Demo logins (password `password123`):
 | Staff | `staff@helpdesk.local` |
 | Manager | `manager@helpdesk.local` |
 
+Notification UIs after `db:up`:
+
+- Mailpit: http://127.0.0.1:8025
+- Webhook echo: http://127.0.0.1:8089/
+
 ## Optional: Ollama LLM
 
 ```bash
@@ -35,12 +41,6 @@ docker exec -it $(docker ps -qf name=ollama) ollama pull qwen2.5:7b
 ```
 
 Leave `AI_PROVIDER=auto` to use Ollama when available, otherwise mock.
-
-## Optional: email + webhook
-
-Fill the SMTP / `WEBHOOK_*` variables in `.env` (see
-[notifications.md](./notifications.md) and `.env.example`). Leave blank to
-keep console + database audit only.
 
 ## Streamlit demo
 
@@ -56,6 +56,10 @@ streamlit run streamlit_app.py
 | `npm test` | Vitest unit + route tests |
 | `npm run eval` | Golden-set evaluation (mock) |
 | `npm run eval:qwen` | Evaluation against Ollama |
+| `npm run worker` | BullMQ worker for durable agent jobs |
+| `npm run smoke:e2e` | DB agent run + notify smoke |
+| `npm run smoke:notify` | Email + webhook only |
+| `npm run pack:submission` | Copy docs + reports into submission pack |
 | `npm run lint` | ESLint |
 | `npm run build` | Prisma generate + Next production build |
 | `npm run smoke:agents` | Smoke run against DB |
@@ -66,3 +70,12 @@ Python:
 ```bash
 python3 -m unittest streamlit_demo.test_core -v
 ```
+
+## Notes
+
+- Next.js 16 may warn that the `middleware` file convention is deprecated in
+  favor of `proxy`. Auth still uses `middleware.ts` with NextAuth; leave it
+  until NextAuth documents the proxy migration.
+- `npm audit` may report transitive advisories in `next` / `next-auth`. Do
+  **not** run `npm audit fix --force` — it can downgrade Next to an incompatible
+  major. Prefer staying on current patched minors.

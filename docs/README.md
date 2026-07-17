@@ -8,5 +8,6 @@
 | [Agents](./agents.md) | Individual agent contracts and orchestration order |
 | [Notifications](./notifications.md) | Email, webhook, and audit-log sinks |
 | [Setup](./setup.md) | Local development, Docker, Ollama, Streamlit |
+| [Phase 1](./phase1.md) | Tenancy, Redis queue, SSO, vector KB |
 
 Start with [Architecture](./architecture.md), then use the others as reference while running or extending the system.

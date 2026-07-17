@@ -32,7 +32,8 @@ Full write-ups live in **[`docs/`](./docs/)**:
 [Data](./docs/data.md) ·
 [Agents](./docs/agents.md) ·
 [Notifications](./docs/notifications.md) ·
-[Setup](./docs/setup.md)
+[Setup](./docs/setup.md) ·
+[Phase 1](./docs/phase1.md) (tenancy, Redis queue, SSO, vector KB)
 
 ---
 
@@ -158,16 +159,16 @@ Without Ollama the app automatically uses the deterministic mock provider.
 
 ### Optional: email + webhook notifications
 
+Local demo stack includes **Mailpit** and a **webhook echo** service:
+
 ```bash
-# in .env — see .env.example and docs/notifications.md
-SMTP_HOST=smtp.example.com
-SMTP_FROM="HelpDesk Lite <noreply@example.com>"
-NOTIFY_EMAIL_TO=staff@helpdesk.local
-WEBHOOK_URL=https://hooks.example.com/helpdesk
-WEBHOOK_SECRET=optional-shared-secret
+npm run db:up
+# Mailpit UI:   http://127.0.0.1:8025
+# Webhook echo: http://127.0.0.1:8089/
+npm run smoke:notify   # or npm run smoke:e2e
 ```
 
-When unset, notifications still write to `NotificationLog` and the console.
+`.env.example` already points SMTP at Mailpit (`1025`) and `WEBHOOK_URL` at the echo service.
 
 ---
 
@@ -192,6 +193,9 @@ manager dashboards with run metrics.
 # TypeScript unit + API route tests (Vitest)
 npm test
 
+# Thin DB end-to-end smoke (agents + email/webhook)
+npm run smoke:e2e
+
 # Python demo-core tests
 python3 -m unittest streamlit_demo.test_core -v
 
@@ -199,23 +203,22 @@ python3 -m unittest streamlit_demo.test_core -v
 npm run eval            # mock provider
 npm run eval:qwen       # real Ollama model
 
+# Build the grader-facing submission pack
+npm run pack:submission
+
 # Lint and production build
 npm run lint
 npm run build
 ```
 
-The eval harness (`lib/ai/eval/run-eval.ts`) runs the full multi-step pipeline over a
-labeled golden set (`lib/ai/eval/golden.ts`) and **fails** if category accuracy,
-valid-JSON rate, or multi-step completion rate fall below configurable thresholds
-(`EVAL_MIN_ACCURACY`, `EVAL_MIN_VALID_RATE`, `EVAL_MIN_COMPLETION_RATE`). It writes a
-machine-readable `evaluation-report.json` for evidence.
+CI runs lint + tests + mock eval on every push/PR (`.github/workflows/ci.yml`).
 
 ### Current status
-- Vitest: **50 tests passing**
-- Python: **4 tests passing**
-- Eval (mock): **100%** category accuracy / valid-output / completion
+- Vitest: unit/API/UI coverage including tickets + notifications + async agent run
+- Python: demo-core tests
+- Eval: mock + Ollama reports under `submission/final-project/`
 - `npm run lint` and `npm run build`: clean
-
+- Local notification sinks: Mailpit + webhook echo
 ---
 
 ## 7. Project structure
